@@ -89,8 +89,8 @@ for r in it:
         else:
             name, code = name_raw.strip(), ''
     sessions = []
-    # The three Time/Venue pairs hold lecture, tutorial and lab timings.
-    for tcol, vcol, kind in (('I', 'J', 'lecture'), ('K', 'L', 'tutorial'), ('M', 'N', 'lab')):
+    # The three Time/Venue pairs hold lecture, tutorial and lab timings; labs are left out.
+    for tcol, vcol, kind in (('I', 'J', 'lecture'), ('K', 'L', 'tutorial')):
         raw = r.get(tcol, '')
         parsed = parse_time_cell(raw, r.get(vcol, ''))
         if raw and not parsed:

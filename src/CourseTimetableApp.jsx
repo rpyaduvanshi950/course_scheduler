@@ -74,13 +74,6 @@ const enrich = (c) => {
   const instructors = splitInstructors(c.instructor);
   const days = [...new Set(c.sessions.flatMap((s) => s.days))];
   const venues = [...new Set(c.sessions.map((s) => s.venue).filter(Boolean))];
-  // A lab column listing several day/time slots (e.g. "MTWThF 14:00-17:00") gives
-  // the windows a lab batch can be assigned to; a student attends only one of them.
-  const labSessions = c.sessions.filter((s) => s.kind === 'lab');
-  const labSlotCount = labSessions.reduce((n, s) => n + s.days.length, 0);
-  const labIsChoice = labSlotCount > 1;
-  const fixedSessions = labIsChoice ? c.sessions.filter((s) => s.kind !== 'lab') : c.sessions;
-  const labOptions = labIsChoice ? labSessions : [];
   const starts = c.sessions.map((s) => toMin(s.start));
   const ends = c.sessions.map((s) => toMin(s.end));
 
@@ -94,8 +87,6 @@ const enrich = (c) => {
     instructors,
     days,
     venues,
-    fixedSessions,
-    labOptions,
     earliest: starts.length ? Math.min(...starts) : null,
     latest: ends.length ? Math.max(...ends) : null,
     hasPrereq: Boolean(c.prerequisite && c.prerequisite.trim()),
@@ -142,28 +133,11 @@ const sessionsOverlap = (a, b) =>
   toMin(a.start) < toMin(b.end) &&
   toMin(b.start) < toMin(a.end);
 
-/** Lab slot options of `a` that every one collide with `b`'s fixed meetings. */
-const blockedLabHits = (a, b) => {
-  const hits = [];
-  for (const lab of a.labOptions) {
-    for (const day of lab.days) {
-      const slot = { ...lab, days: [day] };
-      const blocker = b.fixedSessions.find((sb) => sessionsOverlap(slot, sb));
-      if (!blocker) return [];
-      hits.push({ days: [day], window: `${lab.start}–${lab.end}`, other: `${blocker.start}–${blocker.end}` });
-    }
-  }
-  return hits;
-};
-
-/**
- * Every overlapping (session, session) pair between two courses. Lab slot
- * choices only count as a clash when no slot is left free.
- */
+/** Every overlapping (session, session) pair between two courses. */
 const clashDetails = (a, b) => {
-  const hits = [...blockedLabHits(a, b), ...blockedLabHits(b, a)];
-  for (const sa of a.fixedSessions) {
-    for (const sb of b.fixedSessions) {
+  const hits = [];
+  for (const sa of a.sessions) {
+    for (const sb of b.sessions) {
       if (!sessionsOverlap(sa, sb)) continue;
       const days = sa.days.filter((d) => sb.days.includes(d));
       hits.push({
@@ -181,13 +155,9 @@ const describeSession = (s) =>
 
 const timingSummary = (c) => {
   if (!c.sessions.length) return 'No scheduled meeting time';
-  const parts = c.fixedSessions.map(
-    (s) => `${s.kind === 'lab' ? 'Lab ' : s.kind === 'tutorial' ? 'Tut ' : ''}${describeSession(s)}`
-  );
-  if (c.labOptions.length) {
-    parts.push(`Lab: one of ${c.labOptions.map(describeSession).join(', ')}`);
-  }
-  return parts.join(' · ');
+  return c.sessions
+    .map((s) => `${s.kind === 'tutorial' ? 'Tut ' : ''}${describeSession(s)}`)
+    .join(' · ');
 };
 
 const loadState = () => {
@@ -689,16 +659,14 @@ function TimetableGrid({ selected, conflictIds, onRemove, visibleDays }) {
     const map = Object.fromEntries(visibleDays.map((d) => [d.key, []]));
     for (const course of selected) {
       for (const session of course.sessions) {
-        const option = course.labOptions.includes(session);
         for (const day of session.days) {
           if (!map[day]) continue;
           map[day].push({
             course,
-            option,
             venue: session.venue,
             start: toMin(session.start),
             end: toMin(session.end),
-            label: `${option ? 'Lab option ' : ''}${session.start}–${session.end}`,
+            label: `${session.start}–${session.end}`,
           });
         }
       }
@@ -774,7 +742,7 @@ function TimetableGrid({ selected, conflictIds, onRemove, visibleDays }) {
                         clashing
                           ? 'border-rose-500 bg-rose-100 text-rose-900 ring-1 ring-rose-400'
                           : `${color.border} ${color.bg} ${color.text}`
-                      } ${b.option ? 'border-dashed opacity-60' : ''}`}
+                      }`}
                       style={{
                         top: (b.start - GRID_START) * PX_PER_MIN + 1,
                         height: Math.max((b.end - b.start) * PX_PER_MIN - 2, 18),

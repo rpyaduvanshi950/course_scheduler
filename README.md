@@ -39,15 +39,12 @@ Each record is parsed from the pre-registration sheet into:
 }
 ```
 
-The sheet's three `Time`/`Venue` column pairs hold lecture, tutorial and lab timings and
-are parsed into the `sessions` array, each tagged with its `kind` (e.g. `MWF 09:00-10:00`).
-All 602 timed courses parse cleanly; 107 records (projects, theses, UGPs) legitimately
-carry no meeting time and are grouped separately in the timetable view. The current sheet
-has no venue data, so the Venue filter is hidden until a sheet with rooms is loaded.
-
-A lab cell listing several slots (e.g. `MTWThF 14:00-17:00`) is the set of windows a lab
-batch may be assigned to. The app treats those as options: they show as dashed blocks in
-the grid and only count as a clash when every option is blocked.
+The sheet's three `Time`/`Venue` column pairs hold lecture, tutorial and lab timings. Lecture
+and tutorial timings are parsed into the `sessions` array, each tagged with its `kind` (e.g.
+`MWF 09:00-10:00`); lab timings are left out. All 582 timed courses parse cleanly; 127
+records (projects, theses, UGPs and lab-only courses) carry no meeting time and are grouped
+separately in the timetable view. The current sheet has no venue data, so the Venue filter
+is hidden until a sheet with rooms is loaded.
 
 The app derives a few fields at load: total credits from `3-0-0-0(5)`, the slot name and
 course-type tags from `OE-1 DC / FIRST-HALF`, and an instructor list split out of the
