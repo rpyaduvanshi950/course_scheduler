@@ -89,11 +89,14 @@ for r in it:
         else:
             name, code = name_raw.strip(), ''
     sessions = []
-    for tcol, vcol in (('I', 'J'), ('K', 'L'), ('M', 'N')):
+    # The three Time/Venue pairs hold lecture, tutorial and lab timings.
+    for tcol, vcol, kind in (('I', 'J', 'lecture'), ('K', 'L', 'tutorial'), ('M', 'N', 'lab')):
         raw = r.get(tcol, '')
         parsed = parse_time_cell(raw, r.get(vcol, ''))
         if raw and not parsed:
             unparsed.append(raw)
+        for sess in parsed:
+            sess['kind'] = kind
         sessions.extend(parsed)
     courses.append({
         'id': str(sno or len(courses) + 1),
